@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; connect-src 'self' data: blob:; worker-src 'self' blob:">
+<title>Editor PDF</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Barra superior: archivo, deshacer, navegación, zoom -->
+<header id="topbar">
+  <div class="grp">
+    <button class="tbtn" data-act="new" title="Documento nuevo (Ctrl+N)"><i data-ico="newdoc"></i><span>Nuevo</span></button>
+    <button class="tbtn" data-act="open" title="Abrir un PDF (Ctrl+O)"><i data-ico="open"></i><span>Abrir</span></button>
+    <button class="tbtn primary" data-act="save" title="Guardar (Ctrl+S)"><i data-ico="save"></i><span>Guardar</span></button>
+    <button class="tbtn" data-act="saveas" title="Guardar una copia (Ctrl+Mayús+S)"><i data-ico="saveas"></i><span>Guardar como</span></button>
+    <button class="tbtn" data-act="print" title="Imprimir (Ctrl+P)"><i data-ico="print"></i><span>Imprimir</span></button>
+  </div>
+  <div class="sep"></div>
+  <div class="grp">
+    <button class="tbtn" data-act="undo" id="b-undo" title="Deshacer (Ctrl+Z)"><i data-ico="undo"></i><span>Deshacer</span></button>
+    <button class="tbtn" data-act="redo" id="b-redo" title="Rehacer (Ctrl+Y)"><i data-ico="redo"></i><span>Rehacer</span></button>
+  </div>
+  <div id="docname"><span id="dn"></span><span id="dirty" hidden title="Hay cambios sin guardar">● sin guardar</span></div>
+  <div class="grp">
+    <button class="tbtn ic" data-act="prev" title="Página anterior"><i data-ico="prev"></i></button>
+    <input id="pgnum" type="number" min="1" value="1" title="Ir a la página">
+    <span id="pgtotal">/ 0</span>
+    <button class="tbtn ic" data-act="next" title="Página siguiente"><i data-ico="next"></i></button>
+  </div>
+  <div class="sep"></div>
+  <div class="grp">
+    <button class="tbtn ic" data-act="zoomout" title="Alejar (Ctrl+-)"><i data-ico="zoomout"></i></button>
+    <span id="zoomlbl">125%</span>
+    <button class="tbtn ic" data-act="zoomin" title="Acercar (Ctrl++)"><i data-ico="zoomin"></i></button>
+    <button class="tbtn ic" data-act="fit" title="Ajustar al ancho de la ventana"><i data-ico="fit"></i></button>
+  </div>
+  <div class="grp">
+    <button class="tbtn ic" data-act="theme" title="Cambiar entre tema claro y oscuro"><i data-ico="theme"></i></button>
+    <button class="tbtn ic" data-act="help" title="Atajos y ayuda (F1)"><i data-ico="help"></i></button>
+  </div>
+</header>
+
+<!-- Herramientas agrupadas por tarea -->
+<div id="ribbon">
+  <div class="tgroup">
+    <div class="tg-items">
+      <button class="tool" data-tool="select" title="Seleccionar, mover y redimensionar objetos (V)"><i data-ico="select"></i><span>Seleccionar</span></button>
+      <button class="tool" data-tool="edittext" title="Editar un texto que ya existe en el PDF (E)"><i data-ico="edittext"></i><span>Editar texto</span></button>
+      <button class="tool" data-tool="text" title="Agregar texto nuevo (T)"><i data-ico="text"></i><span>Texto</span></button>
+      <button class="tool" data-tool="image" title="Insertar una imagen (I)"><i data-ico="image"></i><span>Imagen</span></button>
+    </div>
+    <div class="tg-cap">Contenido</div>
+  </div>
+  <div class="tgroup">
+    <div class="tg-items">
+      <button class="tool" data-tool="highlight" title="Resaltar (H)"><i data-ico="highlight"></i><span>Resaltar</span></button>
+      <button class="tool" data-tool="whiteout" title="Tapar contenido con un recuadro (B)"><i data-ico="whiteout"></i><span>Tapar</span></button>
+    </div>
+    <div class="tg-cap">Marcar</div>
+  </div>
+  <div class="tgroup">
+    <div class="tg-items">
+      <button class="tool" data-tool="rect" title="Rectángulo (R)"><i data-ico="rect"></i><span>Rectángulo</span></button>
+      <button class="tool" data-tool="ellipse" title="Elipse (O)"><i data-ico="ellipse"></i><span>Elipse</span></button>
+      <button class="tool" data-tool="line" title="Línea (L)"><i data-ico="line"></i><span>Línea</span></button>
+      <button class="tool" data-tool="arrow" title="Flecha (A)"><i data-ico="arrow"></i><span>Flecha</span></button>
+      <button class="tool" data-tool="pen" title="Lápiz, dibujo libre (P)"><i data-ico="pen"></i><span>Lápiz</span></button>
+    </div>
+    <div class="tg-cap">Dibujar</div>
+  </div>
+</div>
+
+<!-- Opciones de la herramienta u objeto actual -->
+<div id="props">
+  <div class="grp g-text">
+    <label>Fuente
+      <select id="p-font">
+        <option value="helvetica">Helvetica (sin serif)</option>
+        <option value="times">Times (con serif)</option>
+        <option value="courier">Courier (monoespaciada)</option>
+      </select>
+    </label>
+    <label>Tamaño <input id="p-size" type="number" min="4" max="300" value="14"></label>
+    <button id="p-bold" class="tb" title="Negrita"><b>N</b></button>
+    <button id="p-italic" class="tb" title="Cursiva"><i>K</i></button>
+    <label>Color <input id="p-color" type="color" value="#000000"></label>
+  </div>
+  <div class="grp g-shape">
+    <label>Trazo <input id="p-stroke" type="color" value="#d32f2f"></label>
+    <label>Grosor <input id="p-sw" type="number" min="0.5" max="40" step="0.5" value="2"></label>
+  </div>
+  <div class="grp g-fill">
+    <label>Relleno <input id="p-fill" type="color" value="#ffff00"></label>
+    <label id="nofill-wrap"><input id="p-nofill" type="checkbox" checked> Sin relleno</label>
+  </div>
+  <div class="grp g-obj">
+    <button id="a-copy" class="tbtn sm" title="Copiar (Ctrl+C)"><span>Copiar</span></button>
+    <button id="a-dup" class="tbtn sm" title="Duplicar (Ctrl+D)"><span>Duplicar</span></button>
+    <button id="a-front" class="tbtn sm" title="Traer al frente"><span>Al frente</span></button>
+    <button id="a-back" class="tbtn sm" title="Enviar al fondo"><span>Al fondo</span></button>
+    <button id="a-del" class="tbtn sm danger" title="Eliminar (Supr)"><i data-ico="trash"></i><span>Eliminar</span></button>
+  </div>
+  <span id="props-empty">Elegí una herramienta o hacé clic en un objeto para ver sus opciones.</span>
+</div>
+
+<main>
+  <aside id="sidebar">
+    <div id="sb-head"><b>Páginas</b><span id="selinfo"></span></div>
+    <div id="sbtools">
+      <button class="sbtn wide" id="m-add" title="Agregar páginas en blanco, de otro PDF o de imágenes"><i data-ico="plus"></i><span>Agregar</span><i data-ico="caret"></i></button>
+      <button class="sbtn" data-act="rotl" title="Rotar a la izquierda"><i data-ico="rotl"></i></button>
+      <button class="sbtn" data-act="rotr" title="Rotar a la derecha"><i data-ico="rotr"></i></button>
+      <button class="sbtn" data-act="dup" title="Duplicar página"><i data-ico="dup"></i></button>
+      <button class="sbtn" data-act="up" title="Mover hacia arriba"><i data-ico="up"></i></button>
+      <button class="sbtn" data-act="down" title="Mover hacia abajo"><i data-ico="down"></i></button>
+      <button class="sbtn danger" data-act="delpage" title="Eliminar página"><i data-ico="trash"></i></button>
+      <button class="sbtn wide" id="m-more" title="Extraer, numerar, marca de agua, exportar…"><i data-ico="more"></i><span>Más acciones</span><i data-ico="caret"></i></button>
+    </div>
+    <div id="thumbs"></div>
+    <div id="sb-foot">Ctrl+clic o Mayús+clic para elegir varias páginas · clic derecho para más opciones</div>
+  </aside>
+
+  <section id="viewer">
+    <div id="pages" hidden></div>
+
+    <div id="empty">
+      <div class="welcome">
+        <h1>Editor PDF</h1>
+        <p class="sub">Editar, ordenar y anotar PDF sin complicaciones.</p>
+        <div class="cards">
+          <button class="card primary" data-act="open"><i data-ico="open"></i><b>Abrir un PDF</b><small>Ctrl+O, o arrastrar el archivo a esta ventana</small></button>
+          <button class="card" data-act="new"><i data-ico="newdoc"></i><b>Documento en blanco</b><small>Empezar desde cero</small></button>
+          <button class="card" data-act="imgs"><i data-ico="image"></i><b>Imágenes a PDF</b><small>Fotos o escaneos en un solo documento</small></button>
+        </div>
+        <div id="recents" hidden>
+          <h3>Recientes</h3>
+          <div id="recent-list"></div>
+        </div>
+        <div class="tips">
+          <h3>Cómo empezar</h3>
+          <ul>
+            <li><b>Editar un texto:</b> doble clic sobre cualquier texto del PDF.</li>
+            <li><b>Agregar texto:</b> herramienta <i>Texto</i> y clic donde corresponda.</li>
+            <li><b>Páginas:</b> panel izquierdo, para arrastrar, rotar, duplicar o eliminar.</li>
+            <li><b>Equivocación:</b> Ctrl+Z deshace casi cualquier cosa.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="status">
+  <span id="hint"></span>
+  <span id="pageinfo"></span>
+</footer>
+
+<div id="dropzone" hidden><div>Soltar el PDF para abrirlo</div></div>
+<div id="busy" hidden><div class="busybox"><div class="spin"></div><span>Procesando…</span></div></div>
+<div id="toast"></div>
+
+<script src="../node_modules/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="../node_modules/pdfjs-dist/legacy/build/pdf.js"></script>
+<script src="model.js"></script>
+<script src="export.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

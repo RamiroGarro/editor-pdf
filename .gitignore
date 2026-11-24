@@ -1,0 +1,19 @@
+# Librerías (se regeneran con npm install)
+node_modules/
+
+# Instaladores generados (pesan cientos de MB y GitHub rechaza archivos de más de 100 MB)
+dist/
+*.exe
+
+# Datos de la empresa: bases de datos, copias de seguridad y planillas
+*.db
+*.db-journal
+*.hrdb
+*.xlsx
+*.xls
+*.csv
+
+# Registros y archivos temporales
+*.log
+*.tmp
+npm-debug.log*

@@ -1,0 +1,50 @@
+{
+  "name": "editor-pdf",
+  "version": "2.0.0",
+  "description": "Editor de PDF de escritorio (compatible con Windows 7)",
+  "main": "main.js",
+  "author": "Rama Garro",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "dependencies": {
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "3.11.174"
+  },
+  "devDependencies": {
+    "electron": "22.3.27",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.ramagarro.editorpdf",
+    "productName": "Editor PDF",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}
